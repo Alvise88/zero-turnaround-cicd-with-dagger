@@ -1,0 +1,36 @@
+run:
+  skip-dirs:
+    # progressui is a modified 3rd party library from buildkit
+    - util/progressui
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - cyclop
+    - depguard
+    - dogsled
+    - dupl
+    - exportloopref
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - revive
+    - rowserrcheck
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace

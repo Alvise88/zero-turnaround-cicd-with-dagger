@@ -1,0 +1,76 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
+{
+	"name": "ZeroTurnaround CICD with Dagger",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers/features/go:1": {},
+		"ghcr.io/guiyomh/features/golangci-lint:0": {}
+	},
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {
+				"editor.fontFamily": "'Go Mono', Menlo, Monaco, 'Courier New', monospace",
+				"editor.find.addExtraSpaceOnTop": false,
+				"editor.formatOnPaste": true,
+				"editor.formatOnSave": true,
+				"go.toolsManagement.checkForUpdates": "local",
+				"go.useLanguageServer": true,
+				"go.gopath": "/go",
+				"go.buildOnSave": "off",
+				"go.coverOnSingleTest": true,
+				"go.coverOnSingleTestFile": true,
+				"go.lintFlags": [
+					"--fast"
+				],
+				"go.lintTool": "golangci-lint",
+				"go.testTimeout": "300s",
+				"go.coverageDecorator": {
+					"type": "highlight"
+				},
+				"gopls": {
+					"ui.semanticTokens": true
+				},
+				// "yaml.schemas": {
+				// 	".argo-ci/.argoci.json": [
+				// 		".argo-ci.yaml",
+				// 		".argo-ci/pipelines/*.yaml",
+				// 		"examples/*.yaml"
+				// 	]
+				// },
+				"terminal.integrated.fontFamily": "'Go Mono', Menlo, Monaco, 'Courier New', monospace",
+				// Theme setup
+				"workbench.colorTheme": "GitHub Light Colorblind (Beta)",
+				"workbench.iconTheme": "vscode-icons",
+				"workbench.editor.enablePreview": false
+			},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				// Theme
+				"GitHub.github-vscode-theme",
+				"vscode-icons-team.vscode-icons",
+				// Languages
+				"golang.go",
+				"redhat.vscode-yaml",
+				"davidanson.vscode-markdownlint",
+				// Tools
+				"ms-azuretools.vscode-docker",
+				// Git
+				"vivaxy.vscode-conventional-commits"
+			]
+		}
+	},
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": ".devcontainer/setup.sh"
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
