@@ -1,0 +1,28 @@
+{
+    "name": "Dagger",
+    "id": "Dagger (dagger-cli)",
+    "version": "1.0.0",
+    "description": "A feature to install dagger cli",
+    "options": {
+        "version": {
+            "type": "string",
+            "proposals": [
+                "0.3.9",
+                "0.3.7",
+                "0.2.36"
+            ],
+            "default": "0.3.9",
+            "description": "Select or enter a Dagger CLI version. (Availability can vary by OS version.)"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dagger.dagger"
+            ]
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}

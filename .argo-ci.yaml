@@ -1,0 +1,37 @@
+name: "calc"
+
+on: ["push", "pull_request"]
+env:
+  DO_NOT_TRACK: true
+jobs:
+  build:
+    runs-on: go
+    steps:
+      - name: cli
+        with:
+          action: "calc:build"
+          registry-creds: regcred
+  lint:
+    needs: [build]
+    runs-on: go
+    steps:
+      - name: cli
+        with:
+          action: "calc:lint"
+          registry-creds: regcred
+  test:
+    needs: [build]
+    runs-on: go
+    steps:
+      - name: cli
+        with:
+          action: "calc:test"
+          registry-creds: regcred
+  publish:
+    needs: [lint, test]
+    runs-on: go
+    steps:
+      - name: cli
+        with:
+          action: "calc:publish"
+          registry-creds: regcred

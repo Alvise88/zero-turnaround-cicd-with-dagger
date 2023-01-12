@@ -7,21 +7,21 @@ This guide walks you through the process of managing a CICD pipeline with Dagger
 Knowing where to get started with continuous delivery (CD) can be hard, especially when you’re starting from having no automation at all, when you’re making something brand-new, or when you have a pile of legacy code already built up.
 
 Automation is the key to writing Better Software Faster, and is the engine that drives an effective
-Deployment Pipeline. Through Automation we can speed up our software development activities,
-carry out multiple processes in parallel, and reduce the risks of human error.
+Deployment Pipeline.  
+Through Automation we can speed up our software development activities, carry out multiple processes in parallel, and reduce the risks of human error.  
 Manual processes are costly and not easily repeatable. Manual testing is often repetitive, low quality
-and not a good use of a human being’s creative skills (with the exception of exploratory testing).
-We aim to automate any and all repeatable processes that don’t require human ingenuity. We
-automate everything we can in the Deployment Pipeline so that our development activities are
-repeatable, reliable and carried out efficiently, and with consistent results.
+and not a good use of a human being’s creative skills (with the exception of exploratory testing).  
+We aim to automate any and all repeatable processes that don’t require human ingenuity.  
+We automate everything we can in the Deployment Pipeline so that our development activities are
+repeatable, reliable and carried out efficiently, and with consistent results.  
 
 And that’s where Dagger comes in.
 
 ## What is Dagger?
 
-Dagger is a programmable CI/CD engine that runs your pipelines in containers.
+Dagger is a programmable CI/CD engine that runs your pipelines in containers.  
 It permits to write your pipelines as code, in the same programming language (SDK) as your application and
-executes your pipelines entirely as standard OCI containers on buildkit.
+executes your pipelines entirely as standard OCI containers on buildkit.  
 Dagger has several benefits:
 
 - Testable: you can try pipelines locally.
@@ -29,21 +29,24 @@ Dagger has several benefits:
 - Extensible: frequent tasks can be organized using librarires
 - Poliglot: pipeline can be written in different languages.
 
+![docker compatible runtime](./docs/img/docker-compatible-runtime.png "Dagger")
+
 ## Calculator CLI
 
-We are going to build a Calculator application with basic operation of "addition", "subtraction", "multiplication", "division". We will build the code and generate container images that will run on all platforms.
+We are going to build a Calculator application with basic operation of "addition", "subtraction", "multiplication", "division", "power".  
+We will build the code and generate container images that will run on all platforms.  
 
-Refer to examples below you will get some idea.
+Refer to examples below you will get some idea.  
 
 ```shell
-calc sum 2 5
-calc sub 5 2
-calc mul 2 3
-calc div 6 2
-calc pow 2 3
+calc sum 2 5 # 7
+calc sub 5 2 # 3
+calc mul 2 3 # 6
+calc div 6 2 # 3
+calc pow 2 3 # 8
 ```
 
-## Let's start TDD
+## Let's start with TDD
 
 Test-driven development follows a three-phase process:
 
@@ -64,26 +67,7 @@ func TestSum(t *testing.T) {
  }
 
  cases := []testCase{
-  {
-   first:  0,
-   second: 10,
-   sum:    10,
-  },
-  {
-   first:  10,
-   second: 0,
-   sum:    10,
-  },
-  {
-   first:  2,
-   second: 5,
-   sum:    7,
-  },
-  {
-   first:  1,
-   second: 10,
-   sum:    11,
-  },
+  // cases goes here
  }
 
  for _, tc := range cases {
@@ -101,26 +85,7 @@ func TestSub(t *testing.T) {
  }
 
  cases := []testCase{
-  {
-   first:  10,
-   second: 0,
-   sub:    10,
-  },
-  {
-   first:  0,
-   second: 0,
-   sub:    -10,
-  },
-  {
-   first:  10,
-   second: 5,
-   sub:    5,
-  },
-  {
-   first:  5,
-   second: 10,
-   sub:    -5,
-  },
+  // cases goes here
  }
 
  for _, tc := range cases {
@@ -138,36 +103,7 @@ func TestMul(t *testing.T) {
  }
 
  cases := []testCase{
-  {
-   first:  5,
-   second: 0,
-   mul:    0,
-  },
-  {
-   first:  0,
-   second: 5,
-   mul:    0,
-  },
-  {
-   first:  5,
-   second: 1,
-   mul:    5,
-  },
-  {
-   first:  1,
-   second: 5,
-   mul:    5,
-  },
-  {
-   first:  5,
-   second: 2,
-   mul:    10,
-  },
-  {
-   first:  5,
-   second: 5,
-   mul:    25,
-  },
+  // cases goes here
  }
 
  for _, tc := range cases {
@@ -186,36 +122,7 @@ func TestDiv(t *testing.T) {
  }
 
  cases := []testCase{
-  {
-   first:  10,
-   second: 1,
-   div:    10,
-   ok:     true,
-  },
-  {
-   first:  1,
-   second: 10,
-   div:    0,
-   ok:     true,
-  },
-  {
-   first:  10,
-   second: 2,
-   div:    5,
-   ok:     true,
-  },
-  {
-   first:  0,
-   second: 10,
-   div:    0,
-   ok:     true,
-  },
-  {
-   first:  10,
-   second: 0,
-   div:    0,
-   ok:     false,
-  },
+  // cases goes here
  }
 
  for _, tc := range cases {
@@ -243,36 +150,7 @@ func TestPow(t *testing.T) {
  }
 
  cases := []testCase{
-  {
-   base:     2,
-   exponend: 0,
-   power:    1,
-  },
-  {
-   base:     1,
-   exponend: 0,
-   power:    1,
-  },
-  {
-   base:     3,
-   exponend: 1,
-   power:    3,
-  },
-  {
-   base:     5,
-   exponend: 1,
-   power:    5,
-  },
-  {
-   base:     2,
-   exponend: 3,
-   power:    8,
-  },
-  {
-   base:     2,
-   exponend: 2,
-   power:    4,
-  },
+  // cases goes here
  }
 
  for _, tc := range cases {
@@ -282,6 +160,8 @@ func TestPow(t *testing.T) {
  }
 }
 ```
+
+You can find the entire code in this [repository](https://github.com/Alvise88/zero-turnaround-cicd-with-dagger)
 
 ## Defining CICD pipeline
 
@@ -307,7 +187,7 @@ func (calc Calc) Test(ctx context.Context) error {
 }
 
 func (calc Calc) Publish(ctx context.Context) error {
- return errors.New("not: implemented")
+ return errors.New("publish: not implemented")
 }
 ```
 
@@ -480,3 +360,176 @@ func (calc Calc) Lint(ctx context.Context) error {
  return err
 }
 ```
+
+We can run pipeline tasks in this way
+
+```go
+mage calc:build
+mage calc:lint
+mage calc:publish
+mage calc:test
+```
+
+## Create Abstraction
+
+```go
+type Go struct {
+  Version string
+  Packages []string
+}
+
+func Go(spec Go) *dagger.Container{
+  // code goes here
+}
+```
+
+## Integrate with your CI environment
+
+Once you have Dagger running locally, it's easy to use Dagger with any CI environment (no migration required) to run the same Dagger pipelines. Any CI environment with Docker pre-installed works with Dagger out of the box.
+
+For GitHub Action we can use this manifest
+
+```yaml
+name: calc
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/login-action@v2
+        name: Login to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - uses: magefile/mage-action@v2
+        with:
+          version: v1.14.0
+          args: calc:build
+
+```
+
+We have built an internal CI/CD platform inpired by GithubAction, focused on Dagger called ArgoCI, it uses ArgoWorflow and it runs on Kubernetes
+
+For MailUp ArgoCI platform we can use this manifest
+
+```yaml
+name: "calc"
+
+on: ["push", "pull_request"]
+env:
+  DO_NOT_TRACK: true
+jobs:
+  build:
+    runs-on: go
+    steps:
+      - name: build
+        with:
+          action: "calc:build"
+          registry-creds": regcred
+
+```
+
+This manifest will be converted in something similar to
+
+```yaml
+---
+# Generated by argoci; do not edit
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: calc-
+  labels:
+    cicd.mailup.com/based-on: dagger
+    cicd.mailup.com/description: ""
+    cicd.mailup.com/project: calc
+    cicd.mailup.com/team: teamname
+    cicd.mailup.com/managed-by: argoci
+  namespace: cicd
+spec:
+  entrypoint: ci
+  templates:
+  - dag:
+      tasks:
+        name: checkout
+        templateRef:
+          name: git-checkout-v1
+          template: git-checkout
+      - arguments:
+          parameters:
+          - name: env
+            value: DO_NOT_TRACK=true
+          - name: path
+            value: calc
+          - name: action
+            value: calc:build
+          - name: registry-creds
+            value: regcred
+        dependencies:
+        - checkout
+        name: build-build
+        templateRef:
+          name: dagger-v1
+          template: go-sdk
+      - arguments:
+          parameters:
+          - name: env
+            value: DO_NOT_TRACK=true
+          - name: path
+            value: calc
+          - name: action
+            value: calc:lint
+          - name: registry-creds
+            value: regcred
+        dependencies:
+        - build-build
+        name: lint-lint
+        templateRef:
+          name: dagger-v1
+          template: go-sdk
+      - arguments:
+          parameters:
+          - name: env
+            value: DO_NOT_TRACK=true
+          - name: path
+            value: calc
+          - name: action
+            value: calc:test
+          - name: registry-creds
+            value: regcred
+        dependencies:
+        - build-build
+        name: test-test
+        templateRef:
+          name: dagger-v1
+          template: go-sdk
+      - arguments:
+          parameters:
+          - name: env
+            value: DO_NOT_TRACK=true
+          - name: path
+            value: calc
+          - name: action
+            value: calc:publish
+          - name: registry-creds
+            value: regcred
+        dependencies:
+        - lint-lint
+        - test-test
+        name: publish-publish
+        templateRef:
+          name: dagger-v1
+          template: go-sdk
+```
+
+## Final CICD Architecure
+
+![final cicd architecure](./docs/img/argoci-final.png "ArgoCI").

@@ -11,14 +11,14 @@ import (
 
 var goVersion = "1.19.5"
 
+// define build matrix
+var oses = []string{"linux", "darwin"}
+var arches = []string{"amd64", "arm64"}
+
 type Calc mg.Namespace
 
 func (calc Calc) Build(ctx context.Context) error {
 	fmt.Println("Building with Dagger")
-
-	// define build matrix
-	oses := []string{"linux", "darwin"}
-	arches := []string{"amd64", "arm64"}
 
 	// initialize Dagger client
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
