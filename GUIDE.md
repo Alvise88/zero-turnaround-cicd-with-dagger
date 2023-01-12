@@ -1,21 +1,19 @@
-# ZeroTurnaround CICD with Dagger
+# ZeroTurnaround CI/CD with Dagger
 
-This guide walks you through the process of managing a CICD pipeline with Dagger for a "Calculator" CLI.
+This guide walks you through the process of managing a CI/CD pipeline with Dagger for a "Calculator" CLI.
 
 ## Why Dagger?
 
 Knowing where to get started with continuous delivery (CD) can be hard, especially when you’re starting from having no automation at all, when you’re making something brand-new, or when you have a pile of legacy code already built up.
 
-Automation is the key to writing Better Software Faster, and is the engine that drives an effective
-Deployment Pipeline.  
+Automation is the key to writing Better Software Faster, and is the engine that drives an effective Deployment Pipeline.  
 Through Automation we can speed up our software development activities, carry out multiple processes in parallel, and reduce the risks of human error.  
-Manual processes are costly and not easily repeatable. Manual testing is often repetitive, low quality
-and not a good use of a human being’s creative skills (with the exception of exploratory testing).  
+Manual processes are costly and not easily repeatable. Manual testing is often repetitive, low quality and not a good use of a human being’s creative skills (with the exception of exploratory testing).
 We aim to automate any and all repeatable processes that don’t require human ingenuity.  
 We automate everything we can in the Deployment Pipeline so that our development activities are
 repeatable, reliable and carried out efficiently, and with consistent results.  
 
-And that’s where Dagger comes in.
+And that’s where Dagger comes in.  
 
 ## What is Dagger?
 
@@ -26,7 +24,7 @@ Dagger has several benefits:
 
 - Testable: you can try pipelines locally.
 - Portable: the same pipeline can run on your local machine, a CI runner, a dedicated server, or any container hosting service.
-- Extensible: frequent tasks can be organized using librarires
+- Extensible: frequent tasks can be organized using libraries.
 - Poliglot: pipeline can be written in different languages.
 
 ![docker compatible runtime](./docs/img/docker-compatible-runtime.png "Dagger")
@@ -50,7 +48,7 @@ calc pow 2 3 # 8
 
 Test-driven development follows a three-phase process:
 
-- <span style="color:red">Red</span>. We write a failing test (including possible compilation failures). We run the test suite to verify the failing tests. Green. We write just enough production code to make the test green. We run the test suite to verify this.
+- <span style="color:red">Red</span>. We write a failing test (including possible compilation failures). We run the test suite to verify the failing tests.
 
 - <span style="color:green">Green</span>. We write just enough production code to make the test green. We run the test suite to verify this.
 
@@ -161,9 +159,9 @@ func TestPow(t *testing.T) {
 }
 ```
 
-You can find the entire code in this [repository](https://github.com/Alvise88/zero-turnaround-cicd-with-dagger)
+You can find the entire code in this [repository](https://github.com/Alvise88/zero-turnaround-CI/CD-with-dagger)
 
-## Defining CICD pipeline
+## Defining CI/CD pipeline
 
 We are going to implement a simple pipeline within Dagger GO SDK
 
@@ -305,7 +303,7 @@ func (calc Calc) Build(ctx context.Context) error {
 }
 ```
 
-The next pipeline phase is linting
+Dockerfile is not used to build calc image; the next pipeline phase is linting
 
 ```go
 func (calc Calc) Lint(ctx context.Context) error {
@@ -361,13 +359,78 @@ func (calc Calc) Lint(ctx context.Context) error {
 }
 ```
 
+The latest step consists on publishing a multiplatform image and this completes the continuos delivery pipeline
+
+```go
+func (calc Calc) Publish(ctx context.Context) error {
+ fmt.Println("Publishing with Dagger")
+
+ client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stderr))
+ if err != nil {
+  return err
+ }
+ defer client.Close()
+
+ imageRepo := "alvisevitturi/calc:latest"
+
+ // get reference to the local project
+ src := client.Host().Directory(".")
+
+ // get `golang` image
+ golang := client.Container().From(fmt.Sprintf("golang:%s-alpine", goVersion))
+
+ // mount cloned repository into `golang` image
+ golang = golang.WithMountedDirectory("/src", src).WithWorkdir("/src")
+
+ platformVariants := make([]*dagger.Container, 0, len(platforms()))
+
+ for _, goos := range oses {
+  for _, goarch := range arches {
+   platform := dagger.Platform(fmt.Sprintf("%s/%s", goos, goarch))
+
+   // set GOARCH and GOOS in the build environment
+   build := golang.WithEnvVariable("GOOS", goos)
+   build = build.WithEnvVariable("GOARCH", goarch)
+
+   // build application (crosscompilation)
+   build = build.WithExec([]string{"go", "build", "-o", "/output/calc", "./cmd/calc"})
+
+   // select the output directory
+   outputDir := build.Directory("/output")
+
+   // wrap the output directory in a new empty container marked
+   // with the platform
+   calc := client.
+    Container(dagger.ContainerOpts{Platform: platform}).
+    WithRootfs(outputDir)
+   platformVariants = append(platformVariants, calc)
+  }
+ }
+
+ // publishing the final image uses the same API as single-platform
+ // images, but now additionally specify the `PlatformVariants`
+ // option with the containers built before.
+ imageDigest, err := client.
+  Container().
+  Publish(ctx, imageRepo, dagger.ContainerPublishOpts{
+   PlatformVariants: platformVariants,
+  })
+ if err != nil {
+  panic(err)
+ }
+ fmt.Println("published multi-platform image with digest", imageDigest)
+
+ return nil
+}
+```
+
 We can run pipeline tasks in this way
 
 ```go
 mage calc:build
 mage calc:lint
-mage calc:publish
 mage calc:test
+mage calc:publish
 ```
 
 ## Create Abstraction
@@ -414,10 +477,60 @@ jobs:
         with:
           version: v1.14.0
           args: calc:build
-
+  lint:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/login-action@v2
+        name: Login to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - uses: magefile/mage-action@v2
+        with:
+          version: v1.14.0
+          args: calc:lint
+  test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/login-action@v2
+        name: Login to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - uses: magefile/mage-action@v2
+        with:
+          version: v1.14.0
+          args: calc:test
+  publish:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/login-action@v2
+        name: Login to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - uses: magefile/mage-action@v2
+        with:
+          version: v1.14.0
+          args: calc:publish 
 ```
 
-We have built an internal CI/CD platform inpired by GithubAction, focused on Dagger called ArgoCI, it uses ArgoWorflow and it runs on Kubernetes
+We have built an internal CI/CD platform inpired by GitHub Action, focused on Dagger called ArgoCI, it uses ArgoWorflow and it runs on Kubernetes
 
 For MailUp ArgoCI platform we can use this manifest
 
@@ -431,11 +544,34 @@ jobs:
   build:
     runs-on: go
     steps:
-      - name: build
+      - name: cli
         with:
           action: "calc:build"
-          registry-creds": regcred
-
+          registry-creds: regcred
+  lint:
+    needs: [build]
+    runs-on: go
+    steps:
+      - name: cli
+        with:
+          action: "calc:lint"
+          registry-creds: regcred
+  test:
+    needs: [build]
+    runs-on: go
+    steps:
+      - name: cli
+        with:
+          action: "calc:test"
+          registry-creds: regcred
+  publish:
+    needs: [lint, test]
+    runs-on: go
+    steps:
+      - name: cli
+        with:
+          action: "calc:publish"
+          registry-creds: regcred
 ```
 
 This manifest will be converted in something similar to
@@ -448,12 +584,12 @@ kind: Workflow
 metadata:
   generateName: calc-
   labels:
-    cicd.mailup.com/based-on: dagger
-    cicd.mailup.com/description: ""
-    cicd.mailup.com/project: calc
-    cicd.mailup.com/team: teamname
-    cicd.mailup.com/managed-by: argoci
-  namespace: cicd
+    CI/CD.mailup.com/based-on: dagger
+    CI/CD.mailup.com/description: ""
+    CI/CD.mailup.com/project: calc
+    CI/CD.mailup.com/team: teamname
+    CI/CD.mailup.com/managed-by: argoci
+  namespace: CI/CD
 spec:
   entrypoint: ci
   templates:
@@ -530,6 +666,6 @@ spec:
           template: go-sdk
 ```
 
-## Final CICD Architecure
+## Final CI/CD Architecure
 
-![final cicd architecure](./docs/img/argoci-final.png "ArgoCI").
+![final CI/CD architecure](./docs/img/argoci-final.png "ArgoCI").

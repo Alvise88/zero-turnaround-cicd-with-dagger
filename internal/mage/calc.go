@@ -48,7 +48,7 @@ func (calc Calc) Build(ctx context.Context) error {
 			build := golang.WithEnvVariable("GOOS", goos)
 			build = build.WithEnvVariable("GOARCH", goarch)
 
-			// build application
+			// build application, (crosscompilation)
 			build = build.WithExec([]string{"go", "build", "-o", path, "./cmd/calc"})
 
 			// get reference to build output directory in container
@@ -113,6 +113,19 @@ func (calc Calc) Test(ctx context.Context) error {
 	return err
 }
 
+func platforms() []dagger.Platform {
+	platforms := []dagger.Platform{}
+	for _, goos := range oses {
+		for _, goarch := range arches {
+			platform := dagger.Platform(fmt.Sprintf("%s/%s", goos, goarch))
+
+			platforms = append(platforms, platform)
+		}
+	}
+
+	return platforms
+}
+
 func (calc Calc) Publish(ctx context.Context) error {
 	fmt.Println("Publishing with Dagger")
 
@@ -122,27 +135,54 @@ func (calc Calc) Publish(ctx context.Context) error {
 	}
 	defer client.Close()
 
-	image := "alvisevitturi/calc:latest"
+	imageRepo := "alvisevitturi/calc:latest"
 
 	// get reference to the local project
 	src := client.Host().Directory(".")
 
-	calcImage := client.Container().Build(src, dagger.ContainerBuildOpts{
-		BuildArgs: []dagger.BuildArg{
-			{
-				Name:  "GO_VERSION",
-				Value: goVersion,
-			},
-		},
-	})
+	// get `golang` image
+	golang := client.Container().From(fmt.Sprintf("golang:%s-alpine", goVersion))
 
-	ref, err := calcImage.Publish(ctx, image)
+	// mount cloned repository into `golang` image
+	golang = golang.WithMountedDirectory("/src", src).WithWorkdir("/src")
 
-	if err != nil {
-		return err
+	platformVariants := make([]*dagger.Container, 0, len(platforms()))
+
+	for _, goos := range oses {
+		for _, goarch := range arches {
+			platform := dagger.Platform(fmt.Sprintf("%s/%s", goos, goarch))
+
+			// set GOARCH and GOOS in the build environment
+			build := golang.WithEnvVariable("GOOS", goos)
+			build = build.WithEnvVariable("GOARCH", goarch)
+
+			// build application (crosscompilation)
+			build = build.WithExec([]string{"go", "build", "-o", "/output/calc", "./cmd/calc"})
+
+			// select the output directory
+			outputDir := build.Directory("/output")
+
+			// wrap the output directory in a new empty container marked
+			// with the platform
+			calc := client.
+				Container(dagger.ContainerOpts{Platform: platform}).
+				WithRootfs(outputDir)
+			platformVariants = append(platformVariants, calc)
+		}
 	}
 
-	fmt.Printf("published %s", ref)
+	// publishing the final image uses the same API as single-platform
+	// images, but now additionally specify the `PlatformVariants`
+	// option with the containers built before.
+	imageDigest, err := client.
+		Container().
+		Publish(ctx, imageRepo, dagger.ContainerPublishOpts{
+			PlatformVariants: platformVariants,
+		})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("published multi-platform image with digest", imageDigest)
 
 	return nil
 }
