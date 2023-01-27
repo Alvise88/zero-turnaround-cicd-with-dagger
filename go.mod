@@ -3,7 +3,7 @@ module github.com/alvise88/zero-turnaround-cicd-with-dagger
 go 1.19
 
 require (
-	dagger.io/dagger v0.4.3
+	dagger.io/dagger v0.4.4
 	github.com/magefile/mage v1.14.0
 	github.com/spf13/cobra v1.6.1
 )

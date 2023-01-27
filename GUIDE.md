@@ -54,7 +54,7 @@ Test-driven development follows a three-phase process:
 
 - <span style="color:blue">Refactor</span>. We remove any code smells. These may be due to duplication, hardcoded values, or improper use of language idioms (e.g., using a verbose loop instead of a built-in iterator). If we break any tests during refactoring, we prioritize getting them back to green before exiting this phase.
 
-Application must verify the following tests
+This application must verify the following tests
 
 ```go
 func TestSum(t *testing.T) {
@@ -159,7 +159,7 @@ func TestPow(t *testing.T) {
 }
 ```
 
-You can find the entire code in this [repository](https://github.com/Alvise88/zero-turnaround-CI/CD-with-dagger)
+You can find the entire codebase in this [repository](https://github.com/Alvise88/zero-turnaround-CI/CD-with-dagger)
 
 ## Defining CI/CD pipeline
 
@@ -329,10 +329,10 @@ func (calc Calc) Lint(ctx context.Context) error {
 }
 ```
 
- Similarly for testing task
+Similarly for testing task
 
 ```go
- func (calc Calc) Test(ctx context.Context) error {
+func (calc Calc) Test(ctx context.Context) error {
  fmt.Println("Testing with Dagger")
 
  client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stderr))
@@ -426,7 +426,7 @@ func (calc Calc) Publish(ctx context.Context) error {
 
 We can run pipeline tasks in this way
 
-```go
+```shell
 mage calc:build
 mage calc:lint
 mage calc:test
@@ -435,20 +435,121 @@ mage calc:publish
 
 ## Create Abstraction
 
+With Dagger we can define some abstractions to be reused in different projects; happly we can continue to apply TDD.
+
 ```go
-type Go struct {
-  Version string
-  Packages []string
+func TestAlpine(t *testing.T) {
+ type testCase struct {
+  opts AlpineOpts
+ }
+
+ cases := []testCase{
+  {
+   opts: AlpineOpts{
+    Version: "3.17.1",
+    Packages: []struct {
+     Name    string
+     Version string
+    }{},
+   },
+  },
+ }
+
+// context and dagger code here
+
+ for _, tc := range cases {
+  alpine, err := Alpine(ctx, client, tc.opts)
+
+  if err != nil {
+   t.Error(err)
+   return
+  }
+
+  alpine = alpine.WithExec(util.ToCommand("cat /etc/alpine-release"))
+
+  stdout, err := alpine.Stdout(ctx)
+
+  if err != nil {
+   t.Error(err)
+   return
+  }
+
+  assert.Equal(t, strings.Trim(stdout, "\n"), tc.opts.Version)
+ }
 }
 
-func Go(spec Go) *dagger.Container{
-  // code goes here
+//go:embed data
+var data embed.FS
+
+//go:embed data/ansible.cfg
+var ansibleCfg string
+
+func TestAnsible(t *testing.T) {
+ type testCase struct {
+  opts AnsibleOps
+ }
+
+ // context and dagger code here
+
+ cases := []testCase{
+  {
+   opts: AnsibleOps{
+    Version:    "7.1",
+    Project:    project,
+    AnsibleCfg: ansibleCfg,
+   },
+  },
+ }
+
+ for _, tc := range cases {
+  ansible, err := Anisble(ctx, client, tc.opts)
+
+  if err != nil {
+   t.Error(err)
+   return
+  }
+
+  ansible = ansible.WithExec(util.ToCommand("ansible --version"))
+
+  stdout, err := ansible.Stdout(ctx)
+
+  if err != nil {
+   t.Error(err)
+   return
+  }
+
+  assert.StringContains(t, stdout, "ansible python")
+ }
 }
 ```
 
+Extracted from implemented code
+
+```go
+// based on dagger-cue AlpineOpts definition
+type AlpineOpts struct {
+ Version  string
+ Packages []struct {
+  Name    string
+  Version string
+ }
+}
+
+type AnsibleOps struct {
+ Version    string
+ Project    *dagger.Directory
+ AnsibleCfg string
+}
+
+func Alpine(ctx context.Context, client *dagger.Client, opts AlpineOpts) (*dagger.Container, error) { // code goes here }
+func Anisble(ctx context.Context, client *dagger.Client, opts AnsibleOpts) (*dagger.Container, error) { // code goes here }
+```
+
+The current limitation of these "reusable" code blocks is that they are not multilanguage, we have to wait a new feature called "Dagger Extensions".
+
 ## Integrate with your CI environment
 
-Once you have Dagger running locally, it's easy to use Dagger with any CI environment (no migration required) to run the same Dagger pipelines. Any CI environment with Docker pre-installed works with Dagger out of the box.
+Once you have Dagger running locally, it's easy to use it with any CI environment (no migration required) to run the same Dagger pipelines. Any CI environment with Docker pre-installed works with Dagger out of the box.
 
 For GitHub Action we can use this manifest
 
@@ -530,7 +631,7 @@ jobs:
           args: calc:publish 
 ```
 
-We have built an internal CI/CD platform inpired by GitHub Action, focused on Dagger called ArgoCI, it uses ArgoWorflow and it runs on Kubernetes
+We have built an internal CI/CD platform inpired by GitHub Action, focused on Dagger called ArgoCI, it uses ArgoWorflow and it runs on Kubernetes.
 
 For MailUp ArgoCI platform we can use this manifest
 
@@ -584,12 +685,12 @@ kind: Workflow
 metadata:
   generateName: calc-
   labels:
-    CI/CD.mailup.com/based-on: dagger
-    CI/CD.mailup.com/description: ""
-    CI/CD.mailup.com/project: calc
-    CI/CD.mailup.com/team: teamname
-    CI/CD.mailup.com/managed-by: argoci
-  namespace: CI/CD
+    cicd.mailup.com/based-on: dagger
+    cicd.mailup.com/description: ""
+    cicd.mailup.com/project: calc
+    cicd.mailup.com/team: teamname
+    cicd.mailup.com/managed-by: argoci
+  namespace: cicd
 spec:
   entrypoint: ci
   templates:
@@ -667,5 +768,7 @@ spec:
 ```
 
 ## Final CI/CD Architecure
+
+ArgoCI (command line interface) glued togheter ArgoWorflow, ArgoCD, ArgoEvents and Dagger to reach this CI/CD architecture.
 
 ![final CI/CD architecure](./docs/img/argoci-final.png "ArgoCI").
