@@ -7,9 +7,12 @@ import (
 
 	"dagger.io/dagger"
 	"github.com/magefile/mage/mg"
+
+	zerodagger "github.com/alvise88/zero-turnaround-cicd-with-dagger/internal/abstraction/dagger"
+	"github.com/alvise88/zero-turnaround-cicd-with-dagger/internal/abstraction/docker"
 )
 
-var goVersion = "1.19.5"
+var goVersion = "1.19.6"
 
 // define build matrix
 var oses = []string{"linux", "darwin"}
@@ -100,10 +103,21 @@ func (calc Calc) Test(ctx context.Context) error {
 	src := client.Host().Directory(".")
 
 	// get `golang` image
-	golang := client.Container().From(fmt.Sprintf("golang:%s-alpine", goVersion))
+	// golang :=
+	golang, err := zerodagger.Dagger(client, zerodagger.Opts{
+		Version: "0.3.12",
+		Image:   client.Container().From(fmt.Sprintf("golang:%s-bullseye", goVersion)),
+	})
+
+	if err != nil {
+		return err
+	}
 
 	// mount cloned repository into `golang` image
-	golang = golang.WithMountedDirectory("/src", src).WithWorkdir("/src")
+	golang = golang.
+		WithMountedDirectory("/root/.docker", docker.HostDockerDir(client)).
+		WithMountedDirectory("/src", src).
+		WithWorkdir("/src")
 
 	_, err = golang.
 		WithEnvVariable("CGO_ENABLED", "0").

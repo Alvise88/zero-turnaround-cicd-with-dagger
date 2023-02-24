@@ -7,11 +7,13 @@
         "version": {
             "type": "string",
             "proposals": [
+                "0.3.12",
+                "0.3.10",
                 "0.3.9",
                 "0.3.7",
                 "0.2.36"
             ],
-            "default": "0.3.9",
+            "default": "0.3.12",
             "description": "Select or enter a Dagger CLI version. (Availability can vary by OS version.)"
         }
     },

@@ -61,5 +61,5 @@ func Pow(base, exponent int) int {
 		return base
 	}
 
-	return base * Pow(base, exponent-1)
+	return Mul(base, Pow(base, exponent-1))
 }
